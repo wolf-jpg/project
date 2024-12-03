@@ -2,7 +2,7 @@ from tkinter import *
 from tkinter import ttk,filedialog,messagebox
 config = {}
 
-
+#hekllo
 
 if __name__ == "__main__":
     _root = Tk()
@@ -13,7 +13,6 @@ if __name__ == "__main__":
     load_button = Button(_root, text="Load")
 
 
-#testing
 
 
     _root.mainloop()
