@@ -4,11 +4,12 @@ import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import numpy as np
+import wave
 from pathlib import Path
 config = {}
 
 frequency = 0
-
+global_file = None
 def toggle_frequency():
     global frequency
     frequency += 1
@@ -66,8 +67,10 @@ ax6.set_title("Combined RT60 Comparison")
 ax6.set_xlabel("Time (s)")
 ax6.set_ylabel("Amplitude")
 
+
 #new ability to convert file type and takes only audio file
 def file_load():
+    global global_file
     file = filedialog.askopenfilename(
         filetypes=[("Audio Files", "*.wav *.mp3 *.flac")]
     )
@@ -77,8 +80,22 @@ def file_load():
         new_file = file_.with_suffix(".wav")
         file_.rename(new_file)
         file_name.config(text=f"File is loaded: {new_file}")
+        global_file = str(new_file)
 
 
+def analyze(file=None):
+    global global_file
+    try:
+        with wave.open(global_file, "rb") as new_file:
+            frame = new_file.getnframes()
+            frame_rate = new_file.getframerate()
+            frame = new_file.readframes(frame)
+            wave_graph = np.frombuffer(frame, dtype=np.int16)
+
+            ax1.plot(wave_graph)
+            canvas1.draw()
+    except FileNotFoundError:
+        print(f"file not found")
 
 if __name__ == "__main__":
     _root = tk.Tk()
@@ -114,8 +131,8 @@ if __name__ == "__main__":
     file_name = ttk.Label(button_frame, text="No file chosen")
     file_name.pack(side='left', pady=10)
 
-    # Toggle button
-    _fetch_btn = ttk.Button(button_frame, text='Analyze')  #add command= function-name
+    # Analyze button
+    _fetch_btn = ttk.Button(button_frame, text='Analyze', command=analyze)  #add command= function-name
     _fetch_btn.pack(side='left', pady=10)
 
     #Toggle button
