@@ -4,10 +4,11 @@ import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import numpy as np
-
-config = {}
+import wave
+from pathlib import Path
 
 frequency = 0
+global_file = None
 
 def toggle_frequency():
     global frequency
@@ -50,7 +51,6 @@ ax3.set_title("Mid Frequency")
 ax3.set_xlabel("Time (s)")
 ax3.set_ylabel("Amplitude")
 
-
 fig4, ax4 = plt.subplots(figsize=(3, 2))
 ax4.set_title("High Frequency")
 ax4.set_xlabel("Time (s)")
@@ -66,29 +66,45 @@ ax6.set_title("Combined RT60 Comparison")
 ax6.set_xlabel("Time (s)")
 ax6.set_ylabel("Amplitude")
 
-
 def file_load():
-    filedialog.askopenfilename()
+    global global_file
+    file = filedialog.askopenfilename(filetypes=[("Audio Files", "*.wav *.mp3 *.flac")])
+    if file:
+        file_ = Path(file)
+        new_file = file_.with_suffix(".wav")
+        file_.rename(new_file)
+        file_name.config(text=f"File is loaded: {new_file}")
+        global_file = str(new_file)
 
+def analyze():
+    global global_file
+    try:
+        with wave.open(global_file, "rb") as new_file:
+            frame = new_file.getnframes()
+            frame_rate = new_file.getframerate()
+            frame = new_file.readframes(frame)
+            wave_graph = np.frombuffer(frame, dtype=np.int16)
+
+            ax1.plot(wave_graph)
+            canvas1.draw()
+    except FileNotFoundError:
+        messagebox.showerror("Error", "File not found")
 
 if __name__ == "__main__":
     _root = tk.Tk()
-
-
-
     _root.configure(bg="white")
-
-
 
     # Create windows and charts
     _root.title("SPIDAM - Acoustic Modeling")
-    _root.state('zoomed')  # this makes sure the window is maximized on the screen.
-    #Creates the button frame
+    _root.state('zoomed')  # This makes sure the window is maximized on the screen.
+
+    # Create the button frame
     button_frame = ttk.Frame(_root)
     button_frame.pack(side='top', pady=10)
+
     # Create frames to hold the canvases
     upper_frame = tk.Frame(_root)  # _root is the parent of upper_frame
-    upper_frame.pack(fill="both", expand=True)  # both makes sure it uses both x and y, expand maximizes the space
+    upper_frame.pack(fill="both", expand=True)  # 'both' makes sure it uses both x and y, expand maximizes the space
 
     middle_frame = tk.Frame(_root)
     middle_frame.pack(fill="both", expand=True)
@@ -96,35 +112,26 @@ if __name__ == "__main__":
     lower_frame = tk.Frame(_root)
     lower_frame.pack(fill="both", expand=True)
 
-
-    #Buttons
-    # load button
+    # Buttons
     load_button = ttk.Button(button_frame, text="Load file", command=file_load)
     load_button.pack(side='left', pady=10)
 
-    # Toggle button
-    _fetch_btn = ttk.Button(button_frame, text='Analyze')  #add command= function-name
-    _fetch_btn.pack(side='left', pady=10)
+    file_name = ttk.Label(button_frame, text="No file chosen")
+    file_name.pack(side='left', pady=10)
 
-    #Toggle button
-    _fetch_btn = ttk.Button(button_frame,text='Toggle Frequency', command=toggle_frequency)
-    _fetch_btn.pack(side='left', pady=10)
+    analyze_button = ttk.Button(button_frame, text='Analyze', command=analyze)
+    analyze_button.pack(side='left', pady=10)
 
+    toggle_button = ttk.Button(button_frame, text='Toggle Frequency', command=toggle_frequency)
+    toggle_button.pack(side='left', pady=10)
 
-
-    #Graphs
+    # Graphs
     # Upper Section
-    # Create canvases for each figure
     canvas1 = FigureCanvasTkAgg(fig1, upper_frame)  # figure one. upper_frame is the parent of this widget
     canvas1.draw()  # draws the graph
     canvas1.get_tk_widget().pack(side="left", fill="both", expand=True)
 
-
-
-
-
     # Lower Section
-    # Create canvases for each figure
     canvas5 = FigureCanvasTkAgg(fig5, lower_frame)
     canvas5.draw()
     canvas5.get_tk_widget().pack(side="left", fill="both", expand=True)
