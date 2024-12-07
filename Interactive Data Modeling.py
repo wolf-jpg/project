@@ -76,6 +76,19 @@ def file_load():
         file_name.config(text=f"File is loaded: {new_file}")
         global_file = str(new_file)
 
+
+    try:
+        with wave.open(global_file, "rb") as new_file:
+            frame = new_file.getnframes()
+            frame_rate = new_file.getframerate()
+            frame = new_file.readframes(frame)
+            wave_graph = np.frombuffer(frame, dtype=np.int16)
+
+            ax1.plot(wave_graph)
+            canvas1.draw()
+    except FileNotFoundError:
+        messagebox.showerror("Error", "File not found")
+
 def analyze():
     global global_file
     try:
