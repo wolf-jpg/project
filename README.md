@@ -9,3 +9,13 @@ The application allowes users to load an audio file, then analyze it, and provid
 -Toggle between Freequency's
 
 
+##Requirements
+See requirement.txt
+
+#Usage
+
+-Run the Application
+-Load an Audio File
+-Analyze the Audio File
+-Toggle between Frequency's
+
