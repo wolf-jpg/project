@@ -1,0 +1,7 @@
+tkinter
+matplotlib
+numpy
+wave
+pathlib
+scipy
+pydub
