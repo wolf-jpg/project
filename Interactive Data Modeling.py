@@ -98,11 +98,27 @@ ax6.set_title("Combined RT60 Comparison")
 ax6.set_xlabel("Time (s)")
 ax6.set_ylabel("Amplitude")
 
+def compute_rt60_time(data60, fs):
+    _decibel = np.array([(digital_to_decibel(x)) for x in data60]).astype(np.int16)
+    _max = np.max(_decibel)
+    _max_index = np.where(_decibel == _max)[0][0]
+    _5_under_index = np.where(_decibel[_max_index:] == _max - 5)[0][0]
+    _25_under_index = np.where(_decibel[_5_under_index:] == _max - 25)[0][0]
+    _rt20_time = (_25_under_index - _5_under_index) / fs
+    return _rt20_time * 3
+
 def file_load():
     global model
+    global info_str
     new_model = Model()
     new_model.file = filedialog.askopenfilename(filetypes=[("Audio Files", "*.wav *.mp3")])
     if new_model.file:
+        ax1.clear()
+        ax2.clear()
+        ax3.clear()
+        ax4.clear()
+        ax5.clear()
+        ax6.clear()
         ext = Path(new_model.file).suffix.lower()
         if ext == ".wav":
             new_model.samplerate, new_model.data = wavfile.read(new_model.file)
@@ -130,9 +146,33 @@ def file_load():
     except FileNotFoundError:
         messagebox.showerror("Error", "Could not display waveform.")
 
+def plot_rt60(ax, x, y):
+    ax.plot(x,y)
+    ax.scatter([x[np.argmin(y)]],[np.min(y)], color="blue", label="Low")
+    _mid_idx = len(x) // 2
+    ax.scatter([x[_mid_idx]], [y[_mid_idx]], color="green", label="Mid")
+    ax.scatter([x[np.argmax(y)]], [np.max(y)], color="red", label="High")
+
 def analyze():
     global model
-
+    global info_str
+    _low_signal = low_pass(high_pass(model.mono, 1, model.samplerate), 1000, model.samplerate)
+    _mid_signal = low_pass(high_pass(model.mono, 1001, model.samplerate), 3000, model.samplerate)
+    _high_signal = low_pass(high_pass(model.mono, 3001, model.samplerate), 20000, model.samplerate)
+    _low_decibels = np.array([(digital_to_decibel(x)) for x in _low_signal]).astype(np.int16)
+    _mid_decibels = np.array([(digital_to_decibel(x)) for x in _mid_signal]).astype(np.int16)
+    _high_decibels = np.array([(digital_to_decibel(x)) for x in _high_signal]).astype(np.int16)
+    _x = np.linspace(0., model.duration, model.data.shape[0])
+    plot_rt60(ax2, _x, _low_decibels)
+    plot_rt60(ax3, _x, _mid_decibels)
+    plot_rt60(ax4, _x, _high_decibels)
+    ax6.plot(_x, _low_decibels)
+    ax6.plot(_x, _mid_decibels)
+    ax6.plot(_x, _high_decibels)
+    info_str += f"   RT60 Time: {round(compute_rt60_time(model.mono, model.samplerate),2)}"
+    file_name.config(text=info_str)
+    _spectrum, _freqs, _t, _im = ax5.specgram(model.mono, Fs=model.samplerate, NFFT=1024)
+    update_canvas()
 
 if __name__ == "__main__":
     _root = tk.Tk()
