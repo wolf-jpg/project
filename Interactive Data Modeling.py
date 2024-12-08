@@ -6,9 +6,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import wave
 from pathlib import Path
+from scipy.io import wavfile
+from pydub import AudioSegment
 
-frequency = 0
-global_file = None
+model = None
+
+class Model:
+    def __init__(self):
+        self.file = None
+        self.data = None
+        self.samplerate = None
+        self.mono = None
+        self.duration = None
 
 def toggle_frequency():
     global frequency
@@ -67,41 +76,40 @@ ax6.set_xlabel("Time (s)")
 ax6.set_ylabel("Amplitude")
 
 def file_load():
-    global global_file
-    file = filedialog.askopenfilename(filetypes=[("Audio Files", "*.wav *.mp3 *.flac")])
-    if file:
-        file_ = Path(file)
-        new_file = file_.with_suffix(".wav")
-        file_.rename(new_file)
-        file_name.config(text=f"File is loaded: {new_file}")
-        global_file = str(new_file)
-
+    global model
+    new_model = Model()
+    new_model.file = filedialog.askopenfilename(filetypes=[("Audio Files", "*.wav *.mp3")])
+    if new_model.file:
+        ext = Path(new_model.file).suffix.lower()
+        if ext == ".wav":
+            new_model.samplerate, new_model.data = wavfile.read(new_model.file)
+        elif ext == ".mp3":
+            AudioSegment.from_mp3(new_model.file).export("convert.wav", format="wav")
+            new_model.samplerate,new_model.data = wavfile.read(new_model.file)
+            Path("convert.wav").unlink()
+        else:
+            print("Invalid file type")
+        if len(new_model.data.shape) > 1:
+            new_model.mono = np.array([(x[0] + x[1]) / 2 for x in new_model.data]).astype(np.int16)
+        else:
+            new_model.mono = new_model.data
+        new_model.duration = model.data.shape[0] / model.samplerate
+        model = new_model
 
     try:
-        with wave.open(global_file, "rb") as new_file:
+        with wave.open(model.file, "rb") as new_file:
             frame = new_file.getnframes()
-            frame_rate = new_file.getframerate()
             frame = new_file.readframes(frame)
             wave_graph = np.frombuffer(frame, dtype=np.int16)
 
             ax1.plot(wave_graph)
             canvas1.draw()
     except FileNotFoundError:
-        messagebox.showerror("Error", "File not found")
+        messagebox.showerror("Error", "Could not display waveform.")
 
 def analyze():
-    global global_file
-    try:
-        with wave.open(global_file, "rb") as new_file:
-            frame = new_file.getnframes()
-            frame_rate = new_file.getframerate()
-            frame = new_file.readframes(frame)
-            wave_graph = np.frombuffer(frame, dtype=np.int16)
+    global model
 
-            ax1.plot(wave_graph)
-            canvas1.draw()
-    except FileNotFoundError:
-        messagebox.showerror("Error", "File not found")
 
 if __name__ == "__main__":
     _root = tk.Tk()
@@ -109,7 +117,6 @@ if __name__ == "__main__":
 
     # Create windows and charts
     _root.title("SPIDAM - Acoustic Modeling")
-    _root.state('zoomed')  # This makes sure the window is maximized on the screen.
 
     # Create the button frame
     button_frame = ttk.Frame(_root)
