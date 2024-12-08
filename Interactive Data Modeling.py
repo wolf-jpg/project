@@ -132,8 +132,12 @@ def file_load():
             new_model.mono = np.array([(x[0] + x[1]) / 2 for x in new_model.data]).astype(np.int16)
         else:
             new_model.mono = new_model.data
-        new_model.duration = model.data.shape[0] / model.samplerate
+        new_model.duration = new_model.data.shape[0] / new_model.samplerate
+        _freqs, _power = welch(new_model.mono, new_model.samplerate, nperseg=4096)
+        new_model.res_freq = _freqs[np.argmax(_power)]
         model = new_model
+        info_str=f"File: {model.file}\nDuration: {round(model.duration,2)}s   Frequency: {round(model.res_freq, 0)}Hz"
+        file_name.config(text=info_str)
 
     try:
         with wave.open(model.file, "rb") as new_file:
