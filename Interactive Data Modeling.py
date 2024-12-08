@@ -8,8 +8,7 @@ import wave
 from pathlib import Path
 from scipy.io import wavfile
 from pydub import AudioSegment
-
-model = None
+from scipy.signal import welch, butter, filtfilt
 
 class Model:
     def __init__(self):
@@ -18,28 +17,52 @@ class Model:
         self.samplerate = None
         self.mono = None
         self.duration = None
+        self.res_freq = None
+        self.selected_freq = 0
+
+model = Model()
+info_str = ""
+
+def low_pass(data, cut, fs):
+    nyq = 0.5 * fs
+    normal_cut = cut / nyq
+    b, a = butter(4, normal_cut, btype='lowpass')
+    return filtfilt(b,a,data)
+
+def high_pass(data, cut, fs):
+    nyq = 0.5 * fs
+    normal_cut = cut / nyq
+    b, a = butter(4, normal_cut, btype='highpass')
+    return filtfilt(b,a,data)
+
+def digital_to_decibel(signal):
+    ref = 1
+    if signal != 0:
+        return 20 * np.log10(abs(signal) / ref)
+    else:
+        return -60
 
 def toggle_frequency():
-    global frequency
-    frequency += 1
-    if frequency > 2:
-        frequency = 0
+    global model
+    model.selected_freq += 1
+    if model.selected_freq > 2:
+        model.selected_freq = 0
     update_canvas()
 
 def update_canvas():
-    global frequency
+    global model
     for widget in middle_frame.winfo_children():
         widget.destroy()
 
-    if frequency == 0:
+    if model.selected_freq == 0:
         canvas2 = FigureCanvasTkAgg(fig2, middle_frame)
         canvas2.draw()
         canvas2.get_tk_widget().pack(side="left", fill="both", expand=True)
-    elif frequency == 1:
+    elif model.selected_freq == 1:
         canvas3 = FigureCanvasTkAgg(fig3, middle_frame)
         canvas3.draw()
         canvas3.get_tk_widget().pack(side="left", fill="both", expand=True)
-    elif frequency == 2:
+    elif model.selected_freq == 2:
         canvas4 = FigureCanvasTkAgg(fig4, middle_frame)
         canvas4.draw()
         canvas4.get_tk_widget().pack(side="left", fill="both", expand=True)
